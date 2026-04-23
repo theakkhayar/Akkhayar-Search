@@ -1,0 +1,2 @@
+models/*.pth !text !filter !merge !diff
+models/*.pth filter=lfs diff=lfs merge=lfs -text

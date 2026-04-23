@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Akkhayar Search | Myanmar Font Identifier</title>
+  <meta name="description" content="Discover and identify Myanmar fonts with AI-powered recognition.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            myanmar: ['Noto Sans Myanmar', 'Myanmar Text', 'sans-serif'],
+          },
+          colors: {
+            background: 'var(--background)',
+            foreground: 'var(--foreground)',
+            muted: 'var(--muted)',
+            'muted-foreground': 'var(--muted-foreground)',
+            border: 'var(--border)',
+            card: 'var(--card)',
+            'card-foreground': 'var(--card-foreground)',
+            primary: 'var(--primary)',
+            'primary-foreground': 'var(--primary-foreground)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --background: #0a0a0a;
+      --foreground: #fafafa;
+      --muted: #171717;
+      --muted-foreground: #a3a3a3;
+      --border: #262626;
+      --card: #171717;
+      --card-foreground: #fafafa;
+      --primary: #fafafa;
+      --primary-foreground: #0a0a0a;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--background);
+      color: var(--foreground);
+    }
+    .upload-zone {
+      border: 2px dashed var(--border);
+      transition: all 0.2s ease;
+    }
+    .upload-zone.dragover {
+      border-color: #3b82f6;
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+    .badge-premium {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+    .badge-free {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+    .card-hover {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.3);
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    .hidden { display: none; }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.show {
+      display: flex;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- About Modal -->
+  <div id="aboutModal" class="modal" onclick="closeAbout()">
+    <div class="bg-card border border-border p-6 sm:p-8 rounded-2xl max-w-lg mx-4 text-center relative" onclick="event.stopPropagation()">
+      <button onclick="closeAbout()" class="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <h3 class="text-xl sm:text-2xl font-bold mb-4">About Akkhayar Search</h3>
+      <p class="text-base sm:text-lg leading-relaxed font-myanmar">
+        မြန်မာဖောင့်များကို AI အသုံးပြု၍ လွယ်ကူစွာ ရှာဖွေနိုင်ရန်နှင့် ဖောင့်ဖန်တီးသူများကို တိုက်ရိုက်ဆက်သွယ်အားပေးနိုင်ရန် ရည်ရွယ်ပါသည်။
+      </p>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Title Positioned Left -->
+        <a href="/" class="flex items-center">
+          <img src="/static/logo.png" alt="Akkhayar Search Logo" class="h-8 sm:h-10 w-auto">
+        </a>
+
+        <!-- About Button -->
+        <button onclick="openAbout()" class="px-4 py-2 rounded-full bg-muted text-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+          About
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+    <!-- Hero Section -->
+    <section class="text-center mb-12 sm:mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-xs sm:text-sm mb-6">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        <span>AI-Powered Font Recognition</span>
+      </div>
+      <h2 class="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight mb-4 text-balance px-2 sm:px-0">
+        Akkhayar Search နဲ့ ရှာပါ
+      </h2>
+      <p class="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto text-pretty">
+        မြန်မာဖောင့်များကို Akkhayar Search နဲ့ အလွယ်ကူဆုံး ရှာပါ
+      </p>
+    </section>
+
+    <!-- Upload Zone -->
+    <section class="mb-12 sm:mb-16">
+      <div 
+        id="uploadZone" 
+        class="upload-zone w-full rounded-2xl p-5 sm:p-12 text-center cursor-pointer bg-card"
+        ondrop="handleDrop(event)"
+        ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)"
+        onclick="document.getElementById('fileInput').click()"
+      >
+        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+        <img id="preview-img" style="display: none;" class="max-w-full max-h-48 sm:max-h-64 mx-auto rounded-xl mb-4 object-contain" alt="Selected preview">
+        
+        <!-- Default State -->
+        <div id="defaultState">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
+            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold mb-2">ဖောင့်ရှာရန် ပုံထည့်ပါ</h3>
+          <p class="text-muted-foreground text-sm sm:text-base mb-4 font-myanmar">ရှာဖွေလိုသော စာလုံးနေရာကို သာ Crop လုပ်ပြီးထည့်ပါ</p>
+          <p class="text-xs text-muted-foreground">Supports PNG, JPG, WEBP up to 10MB</p>
+        </div>
+
+        <!-- Preview State -->
+        <div id="previewState" class="hidden">
+          <img id="previewImage" class="block max-w-full max-h-48 sm:max-h-64 mx-auto rounded-xl mb-4 object-contain" alt="Preview">
+          <p id="fileName" class="text-sm text-muted-foreground mb-4"></p>
+          <button onclick="event.stopPropagation(); identifyFont()" class="px-6 py-2.5 bg-foreground text-background rounded-full font-medium text-sm hover:opacity-90 transition-opacity">
+            Identify Font
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden">
+          <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
+            <svg class="w-8 h-8 text-foreground animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2 font-myanmar">ခဏစောင့်ပါ...</h3>
+          <p class="text-muted-foreground text-sm">Our AI is identifying the font</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="resultsSection" class="hidden mb-12 sm:mb-16">
+      <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-6">
+          <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Identified Fonts</h3>
+        </div>
+        
+        <div id="resultsGrid" class="space-y-6">
+          <!-- Results will be inserted here -->
+        </div>
+
+        <div class="mt-8 flex justify-center">
+          <button onclick="resetUpload()" class="px-8 py-2.5 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-sm font-medium transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            New Search
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Fonts Section -->
+    <section id="popularFontsSection" class="mb-12 sm:mb-16">
+      <div class="text-center mb-8 sm:mb-10">
+        <h3 class="text-2xl sm:text-3xl font-bold tracking-tight mb-2 font-myanmar">အက္ခရာမှ ဖန်တီးထားသော မြန်မာယူနီကုဒ်ဖောင့်များ</h3>
+        <p class="text-muted-foreground text-sm sm:text-base font-myanmar">ကို စုစည်းဖော်ပြထားပါသည်</p>
+      </div>
+      <div id="popularFontsGrid" class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+        <!-- Dynamic Font Cards will be inserted here -->
+      </div>
+      
+      <!-- Pagination Buttons -->
+      <div class="mt-10 flex items-center justify-center gap-4">
+        <button id="prevFontsBtn" class="px-6 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-sm font-medium transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Back
+        </button>
+        <button id="nextFontsBtn" class="px-6 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-sm font-medium transition-colors flex items-center gap-2">
+          Next
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-border py-8 sm:py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 whitespace-nowrap">
+          <a href="/" class="flex items-center">
+            <img src="/static/logo.png" alt="Akkhayar Search Logo" class="h-8 w-auto">
+          </a>
+          <span class="text-sm text-muted-foreground font-medium">The Akkhayar</span>
+        </div>
+        <p class="text-xs sm:text-sm text-muted-foreground/80 text-center whitespace-nowrap">AI-Powered Myanmar Font Identifier</p>
+        <p class="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">© 2026 Akkhayar Search</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    let selectedFile = null;
+    const MIN_CONFIDENCE_FOR_MATCH = 0.95;
+
+    // File Upload Handling
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    }
+
+    function handleFileSelect(e) {
+      handleFiles(e.target.files);
+    }
+
+    function handleFiles(files) {
+      if (!files || files.length === 0 || !files[0].type.startsWith('image/')) {
+        clearPreview();
+        return;
+      }
+
+      const file = files[0];
+      selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const previewImg = document.getElementById('preview-img');
+        previewImg.src = e.target.result;
+        previewImg.style.display = 'block';
+        document.getElementById('previewImage').src = e.target.result;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('defaultState').classList.add('hidden');
+        showState('preview');
+        identifyFont();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearPreview() {
+      selectedFile = null;
+      const previewImg = document.getElementById('preview-img');
+      previewImg.removeAttribute('src');
+      previewImg.style.display = 'none';
+      document.getElementById('previewImage').removeAttribute('src');
+      document.getElementById('fileName').textContent = '';
+      showState('default');
+    }
+
+    function showState(state) {
+      document.getElementById('defaultState').classList.add('hidden');
+      document.getElementById('previewState').classList.add('hidden');
+      document.getElementById('loadingState').classList.add('hidden');
+      
+      if (state === 'default') {
+        document.getElementById('defaultState').classList.remove('hidden');
+      } else if (state === 'preview') {
+        document.getElementById('previewState').classList.remove('hidden');
+      } else if (state === 'loading') {
+        document.getElementById('loadingState').classList.remove('hidden');
+      }
+    }
+
+    async function identifyFont() {
+      if (!selectedFile) return;
+      showState('loading');
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const response = await fetch('/predict', {
+          method: 'POST',
+          body: formData
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Prediction request failed');
+        }
+
+        const primary = Array.isArray(payload?.results) ? payload.results[0] : payload;
+        if (!primary || (Array.isArray(payload?.results) && payload.results.length === 0) || isNotFound(primary)) {
+          showNotFound();
+          return;
+        }
+
+        const results = normalizeResults(payload);
+        showResults(results);
+      } catch (error) {
+        showState('preview');
+        alert(`Could not identify the font: ${error.message}`);
+      }
+    }
+
+    function normalizeResults(payload) {
+      if (Array.isArray(payload?.results)) {
+        return payload.results.map(mapResult);
+      }
+
+      return [mapResult(payload)];
+    }
+
+    function mapResult(item) {
+      const confidenceValue = Number(item?.confidence ?? 0);
+      const normalizedConfidence = confidenceValue > 1 ? confidenceValue / 100 : confidenceValue;
+      const confidence = confidenceValue <= 1 ? Math.round(confidenceValue * 100) : Math.round(confidenceValue);
+      const type = resolveFontType(item);
+
+      return {
+        name: item?.font || item?.font_name || item?.name || 'Unknown Font',
+        creator: item?.creator_name || 'The Akkhayar',
+        creatorSocial: item?.social_link || item?.creator_social || item?.creatorSocial || item?.creator_link || item?.['Social Link'] || '',
+        purchaseLink: item?.purchase_link || '',
+        confidence,
+        rawConfidence: normalizedConfidence,
+        type,
+        preview: item?.preview_text || item?.preview || 'မြန်မာစာလုံး'
+      };
+    }
+
+    function isValidExternalLink(link) {
+      if (!link || typeof link !== 'string') return false;
+      try {
+        const url = new URL(link);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function resolveFontType(item) {
+      const status = String(item?.status || '').toLowerCase();
+      if (status === 'premium' || status === 'paid' || status === 'pro') {
+        return 'premium';
+      }
+      return 'free';
+    }
+
+    function isNotFound(item) {
+      const rawName = String(item?.font || item?.font_name || item?.name || '').trim();
+      const nameLower = rawName.toLowerCase();
+      const confidenceValue = Number(item?.confidence ?? 0);
+      const confidence = confidenceValue > 1 ? confidenceValue / 100 : confidenceValue;
+
+      if (!rawName) return true;
+      if (nameLower.includes('unknown')) return true;
+      if (Number.isFinite(confidence) && confidence < MIN_CONFIDENCE_FOR_MATCH) return true;
+      return false;
+    }
+
+    function showNotFound() {
+      showState('default');
+      document.getElementById('resultsSection').classList.remove('hidden');
+
+      const resultsGrid = document.getElementById('resultsGrid');
+      resultsGrid.innerHTML = `
+        <div class="bg-card border border-border rounded-2xl p-6 sm:p-8 text-center shadow-lg">
+          <div class="text-4xl sm:text-5xl text-muted-foreground opacity-70 mb-4">😟</div>
+          <p class="font-myanmar text-lg sm:text-xl font-semibold">အားနာပါတယ် ယခုဖောင့်အား ရှာမတွေ့ပါ</p>
+          <p class="text-sm text-muted-foreground mt-2 font-myanmar">အကောင်းဆုံးရလဒ်အတွက် စာလုံးနေရာကို Crop လုပ်ပြီး ပိုရှင်းလင်းတဲ့ပုံနဲ့ ပြန်စမ်းကြည့်ပါ။</p>
+        </div>
+      `;
+
+      document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function showResults(results) {
+      showState('default');
+      document.getElementById('resultsSection').classList.remove('hidden');
+
+      const resultsGrid = document.getElementById('resultsGrid');
+      resultsGrid.innerHTML = results.map(font => {
+        const isPremium = font.type === 'premium';
+        const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန်' : 'Download';
+
+        return `
+        <div class="bg-card border border-border rounded-2xl overflow-hidden card-hover shadow-lg">
+          <div class="h-28 sm:h-36 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center p-4">
+            <span class="font-myanmar text-3xl sm:text-4xl font-bold text-center">${font.name}</span>
+          </div>
+          <div class="p-6 sm:p-8">
+            <div class="flex flex-col items-center text-center gap-4 mb-6">
+              <div class="space-y-1">
+                <p class="text-base text-muted-foreground">
+                  ရှာဖွေသောဖောင့်နှင့် <span class="font-bold text-green-500 text-lg">${font.confidence}%</span> တူညီပါသည်
+                </p>
+                <p class="text-sm text-muted-foreground">Font Creator - ${font.creator}</p>
+              </div>
+              <span class="${isPremium ? 'badge-premium' : 'badge-free'} text-white text-xs font-medium px-3 py-1 rounded-full">
+                ${isPremium ? 'Premium' : 'Free'}
+              </span>
+            </div>
+            <div class="flex flex-col gap-3">
+              <a href="${font.purchaseLink || '#'}" target="${font.purchaseLink ? '_blank' : '_self'}" rel="${font.purchaseLink ? 'noopener noreferrer' : ''}" class="w-full text-center py-3 px-6 rounded-xl text-base font-semibold transition-all ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-border bg-card hover:bg-muted text-foreground'}">
+                ${buttonText}
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+      }).join('');
+
+      document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetUpload() {
+      document.getElementById('fileInput').value = '';
+      document.getElementById('resultsSection').classList.add('hidden');
+      clearPreview();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Popular Fonts Dynamic Loading
+    async function loadPopularFonts() {
+      console.log('DEBUG: Starting loadPopularFonts()');
+      const grid = document.getElementById('popularFontsGrid');
+      if (!grid) {
+        console.error('DEBUG: #popularFontsGrid not found in DOM!');
+        return;
+      }
+
+      // Add loading state opacity
+      grid.style.opacity = '0.5';
+
+      try {
+        const fetchUrl = '/get_all_fonts';
+        console.log(`DEBUG: Fetching from ${fetchUrl}`);
+        const response = await fetch(fetchUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('DEBUG: Data received from Supabase:', data);
+
+        if (!data || data.length === 0) {
+          console.warn('DEBUG: No data returned from server');
+          grid.innerHTML = '<p class="text-muted-foreground text-center col-span-full py-8">No fonts available in the database yet.</p>';
+          grid.style.opacity = '1';
+          return;
+        }
+
+        let html = '';
+        data.forEach((font, index) => {
+          if (!font.font_name) {
+            console.warn('DEBUG: Skipping invalid font record:', font);
+            return;
+          }
+
+          const status = String(font.status || '').toLowerCase();
+          const isPremium = status === 'premium' || status === 'paid' || status === 'pro';
+          const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန်' : 'Download';
+          const purchaseLink = font.purchase_link || '#';
+          
+          // Force lowercase image path using only the ID part (e.g., A06_BlackTofu -> a06.jpg)
+          // NOTE: If your images aren't showing, try a Hard Refresh (Ctrl + F5)
+          const imgName = font.font_name.split('_')[0].toLowerCase();
+          const previewImg = `/static/previews/${imgName}.jpg`;
+          
+          console.log(`DEBUG: Rendering card for ${font.font_name} with image ${previewImg}`);
+
+          // Add fade-in class with stagger delay
+          html += `
+            <div class="bg-card border border-border rounded-2xl overflow-hidden card-hover fade-in" style="animation-delay: ${index * 0.1}s">
+              <div class="aspect-square bg-muted flex items-center justify-center p-3">
+                <img src="${previewImg}" 
+                     alt="${font.font_name}" 
+                     class="w-full h-full object-cover rounded-xl" 
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                <span class="font-myanmar text-2xl sm:text-3xl text-center hidden">${font.font_name}</span>
+              </div>
+              <div class="p-4 sm:p-5">
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <h4 class="font-semibold text-base sm:text-lg">${font.font_name}</h4>
+                    <p class="text-sm text-muted-foreground">The Akkhayar</p>
+                  </div>
+                  <span class="${isPremium ? 'badge-premium' : 'badge-free'} text-white text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0">
+                    ${isPremium ? 'Premium' : 'Free'}
+                  </span>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <a href="${purchaseLink}" 
+                     target="_blank" 
+                     rel="noopener noreferrer" 
+                     class="w-full text-center py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-border bg-card hover:bg-muted text-foreground'}">
+                    ${buttonText}
+                  </a>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        grid.innerHTML = html;
+        grid.style.opacity = '1';
+        console.log('DEBUG: Grid HTML updated successfully');
+
+      } catch (error) {
+        console.error('DEBUG: loadPopularFonts error:', error);
+        grid.innerHTML = `<p class="text-red-500 text-center col-span-full py-8">Failed to load fonts. Please check console for details.</p>`;
+        grid.style.opacity = '1';
+      }
+    }
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPopularFonts();
+      
+      // Pagination button listeners
+      const prevBtn = document.getElementById('prevFontsBtn');
+      const nextBtn = document.getElementById('nextFontsBtn');
+      
+      if (prevBtn) prevBtn.addEventListener('click', loadPopularFonts);
+      if (nextBtn) nextBtn.addEventListener('click', loadPopularFonts);
+    });
+
+    // About Modal Functions
+    function openAbout() {
+      document.getElementById('aboutModal').classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeAbout() {
+      document.getElementById('aboutModal').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+  </script>
+</body>
+</html>
