@@ -528,10 +528,23 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Popular Fonts Dynamic Loading with Pagination
+    // Popular Fonts Dynamic Loading with Session-based Pagination
     let currentPage = 1;
     let totalPages = 1;
     let totalFonts = 0;
+    let sessionSeed = null;
+
+    // Generate or retrieve session seed for consistent random ordering
+    function getSessionSeed() {
+      if (sessionSeed === null) {
+        // Generate a random seed for this session
+        sessionSeed = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+        console.log(`DEBUG: Generated new session seed: ${sessionSeed}`);
+        // Store in sessionStorage to persist across page reloads in the same session
+        sessionStorage.setItem('fontSessionSeed', sessionSeed);
+      }
+      return sessionSeed;
+    }
 
     async function loadPopularFonts(page = 1) {
       console.log(`DEBUG: Starting loadPopularFonts() for page ${page}`);
@@ -545,7 +558,9 @@
       grid.style.opacity = '0.5';
 
       try {
-        const fetchUrl = `/get_all_fonts?page=${page}`;
+        // Get or generate session seed
+        const seed = getSessionSeed();
+        const fetchUrl = `/get_all_fonts?page=${page}&seed=${seed}`;
         console.log(`DEBUG: Fetching from ${fetchUrl}`);
         const response = await fetch(fetchUrl);
         
@@ -670,6 +685,16 @@
 
     // Initial Load
     document.addEventListener('DOMContentLoaded', () => {
+      // Check if we have a session seed from sessionStorage
+      const existingSeed = sessionStorage.getItem('fontSessionSeed');
+      if (existingSeed) {
+        sessionSeed = existingSeed;
+        console.log(`DEBUG: Retrieved existing session seed: ${sessionSeed}`);
+      } else {
+        // New session - will generate seed when loadPopularFonts is called
+        console.log('DEBUG: No existing session seed found, will generate new one');
+      }
+      
       loadPopularFonts();
       
       // Pagination button listeners

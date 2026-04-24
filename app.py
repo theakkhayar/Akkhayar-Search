@@ -368,14 +368,15 @@ def predict():
 
 @app.route('/get_all_fonts', methods=['GET'])
 def get_all_fonts():
-    """Fetch fonts from Supabase with pagination (6 fonts per page)"""
+    """Fetch fonts from Supabase with session-based pagination (6 fonts per page)"""
     if not supabase_available:
         logger.warning("Supabase not available, returning empty fonts list")
         return jsonify([])
     
     try:
-        # Get page parameter from query string (default to 1)
+        # Get page and seed parameters from query string
         page = int(request.args.get('page', 1))
+        seed = request.args.get('seed', None)
         fonts_per_page = 6
         
         headers = {
@@ -388,7 +389,7 @@ def get_all_fonts():
             "select": "font_name, creator_name, social_link, status, purchase_link, image_url"
         }
         
-        logger.info(f"Fetching all fonts from Supabase for page {page}...")
+        logger.info(f"Fetching all fonts from Supabase for page {page} with seed {seed}...")
         response = requests.get(url, headers=headers, params=params, timeout=10)
         
         if response.status_code == 200:
@@ -401,10 +402,21 @@ def get_all_fonts():
                     'fonts': [],
                     'currentPage': page,
                     'totalPages': 0,
-                    'totalFonts': 0
+                    'totalFonts': 0,
+                    'seed': seed
                 })
             
-            # Shuffle fonts in Python for random ordering (only once per session)
+            # Use session-based seed for consistent random ordering
+            if seed:
+                try:
+                    # Set the random seed for consistent ordering
+                    random.seed(seed)
+                    logger.info(f"Using session seed {seed} for consistent random ordering")
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Invalid seed {seed}, using default: {e}")
+                    seed = None
+            
+            # Shuffle fonts with the seeded random generator
             random.shuffle(all_fonts)
             
             # Calculate pagination
@@ -421,7 +433,8 @@ def get_all_fonts():
                 'fonts': page_fonts,
                 'currentPage': page,
                 'totalPages': total_pages,
-                'totalFonts': total_fonts
+                'totalFonts': total_fonts,
+                'seed': seed
             })
         else:
             logger.error(f"Failed to fetch fonts: {response.status_code}")
@@ -429,7 +442,8 @@ def get_all_fonts():
                 'fonts': [],
                 'currentPage': page,
                 'totalPages': 0,
-                'totalFonts': 0
+                'totalFonts': 0,
+                'seed': seed
             })
     except Exception as e:
         logger.error(f"Error fetching fonts from Supabase: {str(e)}")
@@ -437,7 +451,8 @@ def get_all_fonts():
             'fonts': [],
             'currentPage': 1,
             'totalPages': 0,
-            'totalFonts': 0
+            'totalFonts': 0,
+            'seed': seed
         })
 
 
