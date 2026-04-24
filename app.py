@@ -1,4 +1,7 @@
 import os
+import logging
+from datetime import datetime
+
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
@@ -17,11 +20,30 @@ import requests
 import random
 from dotenv import load_dotenv
 
-env_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(env_path)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+# Try to load .env file if it exists, but don't fail if it doesn't
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    logger.info("Loaded .env file")
+else:
+    logger.info("No .env file found, using environment variables")
+
+# Production-ready environment variable handling
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
+
+# Validate required environment variables
+if not SUPABASE_URL:
+    logger.warning("SUPABASE_URL not set - database features will be disabled")
+if not ANON_KEY:
+    logger.warning("SUPABASE_ANON_KEY not set - database features will be disabled")
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -92,6 +114,11 @@ def looks_like_text(image: Image.Image) -> bool:
 
 
 def supabase_query(table, select_cols, filter_col, filter_val):
+    """Execute a query against Supabase with proper error handling"""
+    if not SUPABASE_URL or not ANON_KEY:
+        logger.warning("Supabase credentials not configured")
+        return None
+    
     try:
         headers = {
             "apikey": ANON_KEY,
@@ -104,30 +131,67 @@ def supabase_query(table, select_cols, filter_col, filter_val):
             filter_col: f"eq.{filter_val}",
             "limit": 1
         }
+        
+        logger.debug(f"Querying {table} with {filter_col}={filter_val}")
         response = requests.get(url, headers=headers, params=params, timeout=10)
+        
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
+                logger.debug(f"Found record in {table}")
                 return data[0]
+            else:
+                logger.debug(f"No records found in {table} for {filter_col}={filter_val}")
+        else:
+            logger.error(f"Supabase query failed: {response.status_code} - {response.text}")
+        
         return None
-    except Exception:
+    except requests.exceptions.Timeout:
+        logger.error(f"Timeout querying {table}")
+        return None
+    except requests.exceptions.ConnectionError:
+        logger.error(f"Connection error querying {table}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error querying {table}: {str(e)}")
         return None
 
 
 def init_supabase():
+    """Initialize Supabase connection with robust error handling"""
     if not SUPABASE_URL or not ANON_KEY:
+        logger.warning("Supabase credentials not available")
         return False
+    
     try:
         headers = {
             "apikey": ANON_KEY,
             "Authorization": f"Bearer {ANON_KEY}"
         }
-        response = requests.get(f"{SUPABASE_URL}/rest/v1/", headers=headers, timeout=5)
+        
+        # Test with the fonts table instead of root endpoint
+        logger.info("Testing Supabase connection...")
+        response = requests.get(
+            f"{SUPABASE_URL}/rest/v1/fonts?select=font_name&limit=1", 
+            headers=headers, 
+            timeout=10
+        )
+        
         if response.status_code == 200:
+            logger.info("Supabase connection successful")
             return True
         else:
+            logger.error(f"Supabase connection failed: {response.status_code} - {response.text}")
             return False
-    except Exception:
+            
+    except requests.exceptions.Timeout:
+        logger.error("Supabase connection timeout")
+        return False
+    except requests.exceptions.ConnectionError:
+        logger.error("Supabase connection error")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error initializing Supabase: {str(e)}")
         return False
 
 
@@ -299,9 +363,11 @@ def predict():
 
 @app.route('/get_all_fonts', methods=['GET'])
 def get_all_fonts():
-    # Fetch 20 fonts and return 6 random ones
+    """Fetch fonts from Supabase and return random selection"""
     if not supabase_available:
+        logger.warning("Supabase not available, returning empty fonts list")
         return jsonify([])
+    
     try:
         headers = {
             "apikey": ANON_KEY,
@@ -313,18 +379,35 @@ def get_all_fonts():
             "select": "font_name, creator_name, social_link, status, purchase_link",
             "limit": 20
         }
+        
+        logger.info("Fetching fonts from Supabase...")
         response = requests.get(url, headers=headers, params=params, timeout=10)
+        
         if response.status_code == 200:
             all_fonts = response.json()
+            logger.info(f"Retrieved {len(all_fonts)} fonts from Supabase")
+            
             if not all_fonts:
+                logger.warning("No fonts found in database")
                 return jsonify([])
             
             # Pick 6 random fonts (or fewer if less than 6 available)
             num_to_pick = min(len(all_fonts), 6)
             random_fonts = random.sample(all_fonts, num_to_pick)
+            logger.info(f"Returning {len(random_fonts)} random fonts")
             return jsonify(random_fonts)
+        else:
+            logger.error(f"Failed to fetch fonts: {response.status_code} - {response.text}")
+            return jsonify([])
+            
+    except requests.exceptions.Timeout:
+        logger.error("Timeout fetching fonts from Supabase")
         return jsonify([])
-    except Exception:
+    except requests.exceptions.ConnectionError:
+        logger.error("Connection error fetching fonts from Supabase")
+        return jsonify([])
+    except Exception as e:
+        logger.error(f"Unexpected error fetching fonts: {str(e)}")
         return jsonify([])
 
 
@@ -333,5 +416,5 @@ def index():
     return send_from_directory(ROOT_DIR, 'ndex.html')
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", "7860"))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
