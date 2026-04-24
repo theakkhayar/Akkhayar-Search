@@ -528,9 +528,13 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Popular Fonts Dynamic Loading
-    async function loadPopularFonts() {
-      console.log('DEBUG: Starting loadPopularFonts()');
+    // Popular Fonts Dynamic Loading with Pagination
+    let currentPage = 1;
+    let totalPages = 1;
+    let totalFonts = 0;
+
+    async function loadPopularFonts(page = 1) {
+      console.log(`DEBUG: Starting loadPopularFonts() for page ${page}`);
       const grid = document.getElementById('popularFontsGrid');
       if (!grid) {
         console.error('DEBUG: #popularFontsGrid not found in DOM!');
@@ -541,7 +545,7 @@
       grid.style.opacity = '0.5';
 
       try {
-        const fetchUrl = '/get_all_fonts';
+        const fetchUrl = `/get_all_fonts?page=${page}`;
         console.log(`DEBUG: Fetching from ${fetchUrl}`);
         const response = await fetch(fetchUrl);
         
@@ -549,18 +553,24 @@
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        console.log('DEBUG: Data received from Supabase:', data);
+        const result = await response.json();
+        console.log('DEBUG: Data received from Supabase:', result);
 
-        if (!data || data.length === 0) {
+        if (!result || !result.fonts || result.fonts.length === 0) {
           console.warn('DEBUG: No data returned from server');
           grid.innerHTML = '<p class="text-muted-foreground text-center col-span-full py-8">No fonts available in the database yet.</p>';
           grid.style.opacity = '1';
           return;
         }
 
+        // Update pagination variables
+        currentPage = result.currentPage;
+        totalPages = result.totalPages;
+        totalFonts = result.totalFonts;
+        const fonts = result.fonts;
+
         let html = '';
-        data.forEach((font, index) => {
+        fonts.forEach((font, index) => {
           if (!font.font_name) {
             console.warn('DEBUG: Skipping invalid font record:', font);
             return;
@@ -616,11 +626,45 @@
         grid.innerHTML = html;
         grid.style.opacity = '1';
         console.log('DEBUG: Grid HTML updated successfully');
+        
+        // Update pagination buttons
+        updatePaginationButtons();
 
       } catch (error) {
         console.error('DEBUG: loadPopularFonts error:', error);
         grid.innerHTML = `<p class="text-red-500 text-center col-span-full py-8">Failed to load fonts. Please check console for details.</p>`;
         grid.style.opacity = '1';
+      }
+    }
+
+    // Update pagination buttons state
+    function updatePaginationButtons() {
+      const prevBtn = document.getElementById('prevFontsBtn');
+      const nextBtn = document.getElementById('nextFontsBtn');
+      
+      if (prevBtn) {
+        prevBtn.disabled = currentPage <= 1;
+        prevBtn.style.opacity = currentPage <= 1 ? '0.5' : '1';
+      }
+      
+      if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.style.opacity = currentPage >= totalPages ? '0.5' : '1';
+      }
+      
+      console.log(`DEBUG: Pagination updated - Page ${currentPage} of ${totalPages}`);
+    }
+
+    // Navigation functions
+    function goToPrevPage() {
+      if (currentPage > 1) {
+        loadPopularFonts(currentPage - 1);
+      }
+    }
+
+    function goToNextPage() {
+      if (currentPage < totalPages) {
+        loadPopularFonts(currentPage + 1);
       }
     }
 
@@ -632,8 +676,8 @@
       const prevBtn = document.getElementById('prevFontsBtn');
       const nextBtn = document.getElementById('nextFontsBtn');
       
-      if (prevBtn) prevBtn.addEventListener('click', loadPopularFonts);
-      if (nextBtn) nextBtn.addEventListener('click', loadPopularFonts);
+      if (prevBtn) prevBtn.addEventListener('click', goToPrevPage);
+      if (nextBtn) nextBtn.addEventListener('click', goToNextPage);
     });
 
     // About Modal Functions

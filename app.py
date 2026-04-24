@@ -368,12 +368,16 @@ def predict():
 
 @app.route('/get_all_fonts', methods=['GET'])
 def get_all_fonts():
-    """Fetch ALL fonts from Supabase and return them in random order"""
+    """Fetch fonts from Supabase with pagination (6 fonts per page)"""
     if not supabase_available:
         logger.warning("Supabase not available, returning empty fonts list")
         return jsonify([])
     
     try:
+        # Get page parameter from query string (default to 1)
+        page = int(request.args.get('page', 1))
+        fonts_per_page = 6
+        
         headers = {
             "apikey": ANON_KEY,
             "Authorization": f"Bearer {ANON_KEY}",
@@ -384,7 +388,7 @@ def get_all_fonts():
             "select": "font_name, creator_name, social_link, status, purchase_link, image_url"
         }
         
-        logger.info("Fetching ALL fonts from Supabase in random order...")
+        logger.info(f"Fetching all fonts from Supabase for page {page}...")
         response = requests.get(url, headers=headers, params=params, timeout=10)
         
         if response.status_code == 200:
@@ -393,18 +397,48 @@ def get_all_fonts():
             
             if not all_fonts:
                 logger.warning("No fonts found in database")
-                return jsonify([])
+                return jsonify({
+                    'fonts': [],
+                    'currentPage': page,
+                    'totalPages': 0,
+                    'totalFonts': 0
+                })
             
-            # Shuffle fonts in Python for random ordering
+            # Shuffle fonts in Python for random ordering (only once per session)
             random.shuffle(all_fonts)
-            logger.info(f"Returning all {len(all_fonts)} fonts in random order")
-            return jsonify(all_fonts)
+            
+            # Calculate pagination
+            total_fonts = len(all_fonts)
+            total_pages = (total_fonts + fonts_per_page - 1) // fonts_per_page
+            
+            # Get fonts for current page
+            start_index = (page - 1) * fonts_per_page
+            end_index = start_index + fonts_per_page
+            page_fonts = all_fonts[start_index:end_index]
+            
+            logger.info(f"Returning {len(page_fonts)} fonts for page {page} of {total_pages}")
+            return jsonify({
+                'fonts': page_fonts,
+                'currentPage': page,
+                'totalPages': total_pages,
+                'totalFonts': total_fonts
+            })
         else:
             logger.error(f"Failed to fetch fonts: {response.status_code}")
-            return jsonify([])
+            return jsonify({
+                'fonts': [],
+                'currentPage': page,
+                'totalPages': 0,
+                'totalFonts': 0
+            })
     except Exception as e:
         logger.error(f"Error fetching fonts from Supabase: {str(e)}")
-        return jsonify([])
+        return jsonify({
+            'fonts': [],
+            'currentPage': 1,
+            'totalPages': 0,
+            'totalFonts': 0
+        })
 
 
 @app.route('/', methods=['GET'])
