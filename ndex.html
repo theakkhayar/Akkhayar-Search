@@ -35,15 +35,20 @@
   </script>
   <style>
     :root {
-      --background: #0a0a0a;
-      --foreground: #fafafa;
-      --muted: #171717;
-      --muted-foreground: #a3a3a3;
-      --border: #262626;
-      --card: #171717;
-      --card-foreground: #fafafa;
-      --primary: #fafafa;
-      --primary-foreground: #0a0a0a;
+      --background: #000000;
+      --foreground: #ffffff;
+      --muted: #0d0d0d;
+      --muted-foreground: #9ca3af;
+      --border: #1a1a1a;
+      --card: rgba(13, 13, 13, 0.7);
+      --card-foreground: #ffffff;
+      --primary: #ff6b35;
+      --primary-foreground: #000000;
+      --accent: #ff8c00;
+      --accent-foreground: #ffffff;
+      --orange-red: #ff4500;
+      --orange-bright: #ff8c00;
+      --glow: radial-gradient(ellipse at center, rgba(255, 69, 0, 0.3) 0%, rgba(255, 140, 0, 0.1) 40%, transparent 70%);
     }
     body {
       font-family: 'Inter', system-ui, sans-serif;
@@ -53,23 +58,27 @@
     .upload-zone {
       border: 2px dashed var(--border);
       transition: all 0.2s ease;
+      background: rgba(13, 13, 13, 0.5);
+      backdrop-filter: blur(10px);
     }
     .upload-zone.dragover {
-      border-color: #3b82f6;
-      background-color: rgba(59, 130, 246, 0.1);
+      border-color: var(--orange-red);
+      background-color: rgba(255, 69, 0, 0.1);
+      box-shadow: 0 0 20px rgba(255, 69, 0, 0.2);
     }
     .badge-premium {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      background: linear-gradient(135deg, var(--orange-red), var(--orange-bright));
+      box-shadow: 0 2px 10px rgba(255, 69, 0, 0.3);
     }
     .badge-free {
-      background: linear-gradient(135deg, #10b981, #059669);
+      background: linear-gradient(135deg, #6b7280, #4b5563);
     }
     .card-hover {
       transition: transform 0.2s, box-shadow 0.2s;
     }
     .card-hover:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 40px -10px rgba(255, 69, 0, 0.2);
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
@@ -82,9 +91,64 @@
       to { opacity: 1; transform: translateY(0); }
     }
     .fade-in {
-      animation: fadeIn 0.5s ease forwards;
+      animation: fadeIn 0.5s ease-out;
     }
     .hidden { display: none; }
+    
+    /* Glassmorphism effect for cards */
+    .glass-card {
+      background: rgba(13, 13, 13, 0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 69, 0, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    
+    .glass-card:hover {
+      border: 1px solid rgba(255, 69, 0, 0.4);
+      box-shadow: 0 8px 32px 0 rgba(255, 69, 0, 0.2);
+    }
+    
+    /* Orange-red glow effect */
+    .logo-glow {
+      position: relative;
+    }
+    
+    .logo-glow::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      left: -20px;
+      right: -20px;
+      bottom: -20px;
+      background: var(--glow);
+      border-radius: 50%;
+      z-index: -1;
+      opacity: 0.6;
+    }
+    
+    /* Button styles with orange-red theme */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--orange-red), var(--orange-bright));
+      color: white;
+      border: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(255, 69, 0, 0.4);
+      background: linear-gradient(135deg, var(--orange-bright), var(--orange-red));
+    }
+    
+    /* Text highlights */
+    .text-highlight {
+      color: var(--orange-red);
+    }
+    
+    .text-secondary {
+      color: var(--muted-foreground);
+    }
     
     /* Modal Styles */
     .modal {
@@ -126,7 +190,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <!-- Title Positioned Left -->
-        <a href="/" class="flex items-center">
+        <a href="/" class="flex items-center logo-glow">
           <img src="/static/logo.png" alt="Akkhayar Search Logo" class="h-8 sm:h-10 w-auto">
         </a>
 
@@ -184,7 +248,7 @@
         <div id="previewState" class="hidden">
           <img id="previewImage" class="block max-w-full max-h-48 sm:max-h-64 mx-auto rounded-xl mb-4 object-contain" alt="Preview">
           <p id="fileName" class="text-sm text-muted-foreground mb-4"></p>
-          <button onclick="event.stopPropagation(); identifyFont()" class="px-6 py-2.5 bg-foreground text-background rounded-full font-medium text-sm hover:opacity-90 transition-opacity">
+          <button onclick="event.stopPropagation(); identifyFont()" class="px-6 py-2.5 btn-primary rounded-full font-medium text-sm transition-all">
             Identify Font
           </button>
         </div>
@@ -258,7 +322,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3 whitespace-nowrap">
-          <a href="/" class="flex items-center">
+          <a href="/" class="flex items-center logo-glow">
             <img src="/static/logo.png" alt="Akkhayar Search Logo" class="h-8 w-auto">
           </a>
           <span class="text-sm text-muted-foreground font-medium">The Akkhayar</span>
@@ -465,8 +529,8 @@
         const hasImage = font.image_url && font.image_url.trim() !== '';
 
         return `
-        <div class="bg-card border border-border rounded-2xl overflow-hidden card-hover shadow-lg">
-          <div class="h-28 sm:h-36 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center p-4 relative">
+        <div class="glass-card border border-border rounded-2xl overflow-hidden card-hover fade-in">
+          <div class="h-28 sm:h-36 bg-gradient-to-br from-orange-red/10 to-orange-bright/10 flex items-center justify-center p-4 relative">
             ${hasImage ? 
               `<img src="${font.image_url}" 
                      alt="${font.font || font.name}" 
@@ -480,7 +544,7 @@
             <div class="flex flex-col items-center text-center gap-4 mb-6">
               <div class="space-y-1">
                 <p class="text-base text-muted-foreground">
-                  ရှာဖွေသောဖောင့်နှင့် <span class="font-bold text-green-500 text-lg">${font.confidence}%</span> တူညီပါသည်
+                  ရှာဖွေသောဖောင့်နှင့် <span class="font-bold text-highlight text-lg">${font.confidence}%</span> တူညီပါသည်
                 </p>
                 <p class="text-sm text-muted-foreground">Font Creator - ${font.creator}</p>
               </div>
@@ -489,7 +553,7 @@
               </span>
             </div>
             <div class="flex flex-col gap-3">
-              <a href="${font.purchaseLink || '#'}" target="${font.purchaseLink ? '_blank' : '_self'}" rel="${font.purchaseLink ? 'noopener noreferrer' : ''}" class="w-full text-center py-3 px-6 rounded-xl text-base font-semibold transition-all ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-border bg-card hover:bg-muted text-foreground'}">
+              <a href="${font.purchaseLink || '#'}" target="${font.purchaseLink ? '_blank' : '_self'}" rel="${font.purchaseLink ? 'noopener noreferrer' : ''}" class="w-full text-center py-3 px-6 rounded-xl text-base font-semibold transition-all ${isPremium ? 'btn-primary text-white' : 'border border-border bg-card hover:bg-muted text-foreground'}">
                 ${buttonText}
               </a>
             </div>
@@ -562,7 +626,7 @@
 
           // Add fade-in class with stagger delay
           html += `
-            <div class="bg-card border border-border rounded-2xl overflow-hidden card-hover fade-in" style="animation-delay: ${index * 0.1}s">
+            <div class="glass-card border border-border rounded-2xl overflow-hidden card-hover fade-in" style="animation-delay: ${index * 0.1}s">
               <div class="aspect-square bg-muted flex items-center justify-center p-3">
                 <img src="${previewImg}" 
                      alt="${font.font_name}" 
@@ -584,7 +648,7 @@
                   <a href="${purchaseLink}" 
                      target="_blank" 
                      rel="noopener noreferrer" 
-                     class="w-full text-center py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-border bg-card hover:bg-muted text-foreground'}">
+                     class="w-full text-center py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${isPremium ? 'btn-primary text-white' : 'border border-border bg-card hover:bg-muted text-foreground'}">
                     ${buttonText}
                   </a>
                 </div>
