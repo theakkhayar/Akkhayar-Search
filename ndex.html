@@ -479,7 +479,7 @@
       const resultsGrid = document.getElementById('resultsGrid');
       resultsGrid.innerHTML = results.map(font => {
         const isPremium = font.type === 'premium';
-        const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန်' : 'Download';
+        const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန် စာပို့ပါ' : 'Download';
         
         // Use Supabase Storage image URL if available, otherwise show font name
         const hasImage = font.image_url && font.image_url.trim() !== '';
@@ -509,7 +509,7 @@
               </span>
             </div>
             <div class="flex flex-col gap-3">
-              <a href="${font.purchaseLink || '#'}" target="${font.purchaseLink ? '_blank' : '_self'}" rel="${font.purchaseLink ? 'noopener noreferrer' : ''}" class="w-full text-center py-3 px-6 rounded-xl text-base font-semibold transition-all ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-border bg-card hover:bg-muted text-foreground'}">
+              <a href="${font.purchaseLink || '#'}" target="${font.purchaseLink ? '_blank' : '_self'}" rel="${font.purchaseLink ? 'noopener noreferrer' : ''}" class="w-full text-center py-3 px-6 rounded-xl text-base font-semibold transition-all ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-gray-400 bg-card hover:bg-muted text-white'}">
                 ${buttonText}
               </a>
             </div>
@@ -593,7 +593,7 @@
 
           const status = String(font.status || '').toLowerCase();
           const isPremium = status === 'premium' || status === 'paid' || status === 'pro';
-          const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန်' : 'Download';
+          const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန် စာပို့ပါ' : 'Download';
           const purchaseLink = font.purchase_link || '#';
           
           // Use Supabase Storage image URL if available, otherwise fallback to local static image
@@ -629,7 +629,7 @@
                   <a href="${purchaseLink}" 
                      target="_blank" 
                      rel="noopener noreferrer" 
-                     class="w-full text-center py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-border bg-card hover:bg-muted text-foreground'}">
+                     class="w-full text-center py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${isPremium ? 'bg-foreground text-background hover:opacity-90' : 'border border-gray-400 bg-card hover:bg-muted text-white'}">
                     ${buttonText}
                   </a>
                 </div>
