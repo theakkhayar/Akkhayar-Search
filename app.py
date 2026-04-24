@@ -1,10 +1,18 @@
+import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from threading import Lock
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
-from PIL import Image, ImageFilter, ImageStat
-import os
+from PIL import Image, ImageFilter, ImageStat, ImageOps
 import requests
 import random
 from dotenv import load_dotenv
@@ -12,8 +20,8 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 
-SUPABASE_URL = "https://lbyoabqbqpravwjksuiz.supabase.co"
-ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxieW9hYnFicXByYXZ3amtzdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NTQxMjUsImV4cCI6MjA5MjQzMDEyNX0.gyyopz3sIN83ilqH8bFLHXCKlDHF-iWplf7r38ctJiU"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,6 +29,20 @@ app = Flask(__name__, static_folder=ROOT_DIR, static_url_path="")
 CORS(app)
 
 MIN_CONFIDENCE_FOR_MATCH = 0.95
+
+torch.set_grad_enabled(False)
+torch.set_num_threads(1)
+try:
+    torch.set_num_interop_threads(1)
+except Exception:
+    pass
+
+
+@app.errorhandler(404)
+def handle_404(_error):
+    if request.path.startswith(("/predict", "/get_all_fonts")):
+        return jsonify({"error": "Not found"}), 404
+    return "Not found", 404
 
 
 def looks_like_text(image: Image.Image) -> bool:
@@ -31,25 +53,26 @@ def looks_like_text(image: Image.Image) -> bool:
         return False
 
     mean = stat.mean[0] if stat.mean else 127
-    pixels = list(gray.getdata())
     w = 128
     h = 128
-    binary = [1 if p < mean else 0 for p in pixels]
+    pix = gray.tobytes()
+    if not pix:
+        return False
 
     transitions = 0
     for y in range(h):
         row_start = y * w
-        prev = binary[row_start]
+        prev = 1 if pix[row_start] < mean else 0
         for x in range(1, w):
-            v = binary[row_start + x]
+            v = 1 if pix[row_start + x] < mean else 0
             if v != prev:
                 transitions += 1
                 prev = v
 
     for x in range(w):
-        prev = binary[x]
+        prev = 1 if pix[x] < mean else 0
         for y in range(1, h):
-            v = binary[y * w + x]
+            v = 1 if pix[y * w + x] < mean else 0
             if v != prev:
                 transitions += 1
                 prev = v
@@ -60,8 +83,8 @@ def looks_like_text(image: Image.Image) -> bool:
         return False
 
     edges = gray.filter(ImageFilter.FIND_EDGES)
-    edge_pixels = list(edges.getdata())
-    edge_strength = sum(edge_pixels) / (255.0 * len(edge_pixels)) if edge_pixels else 0
+    edge_stat = ImageStat.Stat(edges)
+    edge_strength = (edge_stat.mean[0] or 0) / 255.0
     if edge_strength < 0.02:
         return False
 
@@ -108,25 +131,44 @@ def init_supabase():
         return False
 
 
-supabase_available = True
+supabase_available = init_supabase()
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cpu")
+_MODEL = None
+_CLASS_NAMES = None
+_PREPROCESS = None
+_MODEL_LOCK = Lock()
 
-dataset_path = os.path.join(ROOT_DIR, 'dataset')
-class_names = sorted(entry.name for entry in os.scandir(dataset_path) if entry.is_dir())
 
-num_classes = len(class_names)
-model = models.resnet18(pretrained=False)
-model.fc = nn.Linear(model.fc.in_features, num_classes)
-model.load_state_dict(torch.load(os.path.join(ROOT_DIR, 'my_font_model.pth'), map_location=device))
-model = model.to(device)
-model.eval()
+def get_model_bundle():
+    global _MODEL, _CLASS_NAMES, _PREPROCESS
+    if _MODEL is not None and _CLASS_NAMES is not None and _PREPROCESS is not None:
+        return _MODEL, _CLASS_NAMES, _PREPROCESS
 
-preprocess = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.Grayscale(num_output_channels=3),
-    transforms.ToTensor()
-])
+    with _MODEL_LOCK:
+        if _MODEL is not None and _CLASS_NAMES is not None and _PREPROCESS is not None:
+            return _MODEL, _CLASS_NAMES, _PREPROCESS
+
+        dataset_path = os.path.join(ROOT_DIR, "dataset")
+        class_names = sorted(entry.name for entry in os.scandir(dataset_path) if entry.is_dir())
+        num_classes = len(class_names)
+
+        model = models.resnet18(pretrained=False)
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+        state_dict = torch.load(os.path.join(ROOT_DIR, "my_font_model.pth"), map_location="cpu", weights_only=True)
+        model.load_state_dict(state_dict)
+        model.eval()
+
+        preprocess = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.Grayscale(num_output_channels=3),
+            transforms.ToTensor()
+        ])
+
+        _MODEL = model
+        _CLASS_NAMES = class_names
+        _PREPROCESS = preprocess
+        return _MODEL, _CLASS_NAMES, _PREPROCESS
 
 MANUAL_FONT_FALLBACKS = {
     "A01_Pixel": {
@@ -167,8 +209,17 @@ def predict():
         return jsonify({'error': 'No file selected'}), 400
 
     try:
-        original_img = Image.open(file.stream).convert("RGB")
-        if not looks_like_text(original_img):
+        img = Image.open(file.stream)
+        img = ImageOps.exif_transpose(img)
+        try:
+            img.draft("L", (1024, 1024))
+        except Exception:
+            pass
+        img = img.convert("L")
+        resampling = Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else Image.LANCZOS
+        img.thumbnail((1024, 1024), resampling)
+
+        if not looks_like_text(img):
             return jsonify({
                 'font': 'Unknown',
                 'confidence': 0.0,
@@ -180,15 +231,16 @@ def predict():
                 'type': 'free'
             })
 
-        img = preprocess(original_img)
-        img = img.unsqueeze(0).to(device)
+        model, class_names, preprocess = get_model_bundle()
+        img_tensor = preprocess(img).unsqueeze(0)
 
-        with torch.no_grad():
-            outputs = model(img)
+        with torch.inference_mode():
+            outputs = model(img_tensor)
             probs = torch.softmax(outputs, dim=1)
             conf, pred = torch.max(probs, dim=1)
             predicted_class = class_names[pred.item()]
             confidence = conf.item()
+        del img_tensor, outputs, probs, conf, pred
 
         if confidence < MIN_CONFIDENCE_FOR_MATCH:
             return jsonify({
@@ -281,4 +333,5 @@ def index():
     return send_from_directory(ROOT_DIR, 'ndex.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", "7860"))
+    app.run(host='0.0.0.0', port=port, debug=True)

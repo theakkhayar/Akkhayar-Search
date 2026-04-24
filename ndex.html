@@ -353,9 +353,17 @@
           body: formData
         });
 
-        const payload = await response.json();
+        const contentType = response.headers.get('content-type') || '';
+        let payload;
+        if (contentType.includes('application/json')) {
+          payload = await response.json();
+        } else {
+          const text = await response.text();
+          throw new Error(`Server returned non-JSON response (status ${response.status}).`);
+        }
+
         if (!response.ok) {
-          throw new Error(payload.error || 'Prediction request failed');
+          throw new Error(payload?.error || 'Prediction request failed');
         }
 
         const primary = Array.isArray(payload?.results) ? payload.results[0] : payload;
