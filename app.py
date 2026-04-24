@@ -368,7 +368,7 @@ def predict():
 
 @app.route('/get_all_fonts', methods=['GET'])
 def get_all_fonts():
-    """Fetch fonts from Supabase and return random selection"""
+    """Fetch ALL fonts from Supabase and return them in random order"""
     if not supabase_available:
         logger.warning("Supabase not available, returning empty fonts list")
         return jsonify([])
@@ -381,11 +381,10 @@ def get_all_fonts():
         }
         url = f"{SUPABASE_URL}/rest/v1/fonts"
         params = {
-            "select": "font_name, creator_name, social_link, status, purchase_link, image_url",
-            "limit": 20
+            "select": "font_name, creator_name, social_link, status, purchase_link, image_url"
         }
         
-        logger.info("Fetching fonts from Supabase...")
+        logger.info("Fetching ALL fonts from Supabase in random order...")
         response = requests.get(url, headers=headers, params=params, timeout=10)
         
         if response.status_code == 200:
@@ -396,23 +395,15 @@ def get_all_fonts():
                 logger.warning("No fonts found in database")
                 return jsonify([])
             
-            # Pick 6 random fonts (or fewer if less than 6 available)
-            num_to_pick = min(len(all_fonts), 6)
-            random_fonts = random.sample(all_fonts, num_to_pick)
-            logger.info(f"Returning {len(random_fonts)} random fonts")
-            return jsonify(random_fonts)
+            # Shuffle fonts in Python for random ordering
+            random.shuffle(all_fonts)
+            logger.info(f"Returning all {len(all_fonts)} fonts in random order")
+            return jsonify(all_fonts)
         else:
-            logger.error(f"Failed to fetch fonts: {response.status_code} - {response.text}")
+            logger.error(f"Failed to fetch fonts: {response.status_code}")
             return jsonify([])
-            
-    except requests.exceptions.Timeout:
-        logger.error("Timeout fetching fonts from Supabase")
-        return jsonify([])
-    except requests.exceptions.ConnectionError:
-        logger.error("Connection error fetching fonts from Supabase")
-        return jsonify([])
     except Exception as e:
-        logger.error(f"Unexpected error fetching fonts: {str(e)}")
+        logger.error(f"Error fetching fonts from Supabase: {str(e)}")
         return jsonify([])
 
 
