@@ -460,11 +460,21 @@
       resultsGrid.innerHTML = results.map(font => {
         const isPremium = font.type === 'premium';
         const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန်' : 'Download';
+        
+        // Use Supabase Storage image URL if available, otherwise show font name
+        const hasImage = font.image_url && font.image_url.trim() !== '';
 
         return `
         <div class="bg-card border border-border rounded-2xl overflow-hidden card-hover shadow-lg">
-          <div class="h-28 sm:h-36 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center p-4">
-            <span class="font-myanmar text-3xl sm:text-4xl font-bold text-center">${font.name}</span>
+          <div class="h-28 sm:h-36 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center p-4 relative">
+            ${hasImage ? 
+              `<img src="${font.image_url}" 
+                     alt="${font.font || font.name}" 
+                     class="w-full h-full object-cover rounded-xl absolute inset-0"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+               <span class="font-myanmar text-3xl sm:text-4xl font-bold text-center relative z-10 hidden">${font.font || font.name}</span>` :
+              `<span class="font-myanmar text-3xl sm:text-4xl font-bold text-center">${font.font || font.name}</span>`
+            }
           </div>
           <div class="p-6 sm:p-8">
             <div class="flex flex-col items-center text-center gap-4 mb-6">
@@ -541,10 +551,12 @@
           const buttonText = isPremium ? 'ဖောင့်ဝယ်ရန်' : 'Download';
           const purchaseLink = font.purchase_link || '#';
           
-          // Force lowercase image path using only the ID part (e.g., A06_BlackTofu -> a06.jpg)
-          // NOTE: If your images aren't showing, try a Hard Refresh (Ctrl + F5)
-          const imgName = font.font_name.split('_')[0].toLowerCase();
-          const previewImg = `/static/previews/${imgName}.jpg`;
+          // Use Supabase Storage image URL if available, otherwise fallback to local static image
+          const previewImg = font.image_url || (() => {
+            // Fallback to local static image if no image_url in database
+            const imgName = font.font_name.split('_')[0].toLowerCase();
+            return `/static/previews/${imgName}.jpg`;
+          })();
           
           console.log(`DEBUG: Rendering card for ${font.font_name} with image ${previewImg}`);
 

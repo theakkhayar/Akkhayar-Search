@@ -257,9 +257,9 @@ MANUAL_FONT_FALLBACKS = {
 
 
 def get_font_metadata(font_name):
-    row = supabase_query("fonts", "creator_name, social_link, status, purchase_link", "font_name", font_name)
+    row = supabase_query("fonts", "creator_name, social_link, status, purchase_link, image_url", "font_name", font_name)
     if not row:
-        row = supabase_query("fonts", "creator_name, social_link, status, purchase_link", "name", font_name)
+        row = supabase_query("fonts", "creator_name, social_link, status, purchase_link, image_url", "name", font_name)
     return row if row else {}
 
 
@@ -292,6 +292,7 @@ def predict():
                 'social_link': '',
                 'purchase_link': '',
                 'status': 'unknown',
+                'image_url': '',
                 'type': 'free'
             })
 
@@ -315,6 +316,7 @@ def predict():
                 'social_link': '',
                 'purchase_link': '',
                 'status': 'unknown',
+                'image_url': '',
                 'type': 'free'
             })
 
@@ -322,12 +324,13 @@ def predict():
         social_link = ""
         status = "unknown"
         purchase_link = ""
+        image_url = ""
         db_font_name = predicted_class
 
         if supabase_available:
-            row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link", "font_name", predicted_class)
+            row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link, image_url", "font_name", predicted_class)
             if not row:
-                row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link", "name", predicted_class)
+                row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link, image_url", "name", predicted_class)
 
             if row and isinstance(row, dict):
                 db_font_name = row.get("font_name") or predicted_class
@@ -335,6 +338,7 @@ def predict():
                 social_link = row.get("social_link") or ""
                 status = str(row.get("status") or "unknown")
                 purchase_link = row.get("purchase_link") or ""
+                image_url = row.get("image_url") or ""
 
         if creator_name == "Unknown Creator":
             fallback_data = MANUAL_FONT_FALLBACKS.get(predicted_class)
@@ -354,6 +358,7 @@ def predict():
             'social_link': social_link,
             'purchase_link': purchase_link,
             'status': status,
+            'image_url': image_url,
             'type': 'premium' if status_normalized in ('premium', 'paid', 'pro') else 'free'
         })
 
@@ -376,7 +381,7 @@ def get_all_fonts():
         }
         url = f"{SUPABASE_URL}/rest/v1/fonts"
         params = {
-            "select": "font_name, creator_name, social_link, status, purchase_link",
+            "select": "font_name, creator_name, social_link, status, purchase_link, image_url",
             "limit": 20
         }
         
