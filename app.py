@@ -249,7 +249,7 @@ def get_model_bundle():
             logger.error(f"Model file not found at: {model_path}")
             raise FileNotFoundError(f"Model file not found: {model_path}")
         
-        state_dict = torch.load(model_path, map_location="cpu", weights_only=True)
+        state_dict = torch.load(model_path, map_location="cpu", weights_only=False)
         logger.info(f"Model state dict loaded successfully")
         model.load_state_dict(state_dict)
         model.eval()
