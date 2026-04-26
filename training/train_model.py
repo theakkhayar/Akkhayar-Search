@@ -141,14 +141,14 @@ class FontTrainer:
         print(f'\nTraining completed! Best validation accuracy: {self.best_val_acc:.2f}%')
         
         # Generate final classification report
-        self.generate_classification_report(val_preds, val_labels)
+        self.generate_classification_report(val_preds, val_labels, save_path)
         
         # Plot training history
-        self.plot_training_history()
+        self.plot_training_history(save_path)
         
         return self.best_val_acc
     
-    def generate_classification_report(self, preds, labels):
+    def generate_classification_report(self, preds, labels, save_path):
         """Generate and save classification report"""
         print('\nClassification Report:')
         print(classification_report(labels, preds, target_names=self.class_names))
@@ -158,7 +158,7 @@ class FontTrainer:
         with open(os.path.join(os.path.dirname(save_path), 'classification_report.json'), 'w') as f:
             json.dump(report, f, indent=2)
     
-    def plot_training_history(self):
+    def plot_training_history(self, save_path):
         """Plot training and validation metrics"""
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
         
@@ -194,7 +194,7 @@ def main():
         'model_save_path': r'D:\Font-Data\models\font_model.pth',
         'model_type': 'resnet',  # 'cnn' or 'resnet'
         'batch_size': 32,
-        'num_epochs': 15,
+        'num_epochs': 5,
         'test_size': 0.2,
         'random_state': 42
     }
