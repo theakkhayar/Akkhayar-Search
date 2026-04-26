@@ -29,7 +29,7 @@ num_ftrs = model.fc.in_features
 model.fc = nn.Linear(num_ftrs, len(class_names))
 
 if os.path.exists(MODEL_PATH):
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=device, weights_only=False))
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=device, weights_only=False), strict=False)
     print("Model weights loaded successfully.")
 model.to(device)
 model.eval()
