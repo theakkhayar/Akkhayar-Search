@@ -213,15 +213,40 @@ def get_model_bundle():
         if _MODEL is not None and _CLASS_NAMES is not None and _PREPROCESS is not None:
             return _MODEL, _CLASS_NAMES, _PREPROCESS
 
-        dataset_path = os.path.join(ROOT_DIR, "dataset")
-        class_names = sorted(entry.name for entry in os.scandir(dataset_path) if entry.is_dir())
+        # Load class names from labels.json to match training
+        labels_path = os.path.join(ROOT_DIR, "training", "labels.json")
+        if os.path.exists(labels_path):
+            with open(labels_path, 'r') as f:
+                labels = json.load(f)
+            class_names = sorted(labels.keys(), key=lambda x: labels[x])
+            logger.info(f"Loaded {len(class_names)} classes from labels.json")
+        else:
+            # Fallback to dataset folder structure
+            dataset_path = os.path.join(ROOT_DIR, "dataset")
+            class_names = sorted(entry.name for entry in os.scandir(dataset_path) if entry.is_dir())
+            logger.warning(f"labels.json not found, using {len(class_names)} classes from dataset folder")
+        
         num_classes = len(class_names)
+        logger.info(f"Model expects {num_classes} classes")
 
-        model = models.resnet18(pretrained=False)
+        # Use weights parameter instead of pretrained
+        try:
+            model = models.resnet18(weights=None)
+        except TypeError:
+            # Fallback for older torchvision versions
+            model = models.resnet18(pretrained=False)
         model.fc = nn.Linear(model.fc.in_features, num_classes)
-        state_dict = torch.load(os.path.join(ROOT_DIR, "models", "font_model.pth"), map_location="cpu", weights_only=True)
+        model_path = os.path.join(ROOT_DIR, "models", "font_model.pth")
+        logger.info(f"Loading model from: {model_path}")
+        if not os.path.exists(model_path):
+            logger.error(f"Model file not found at: {model_path}")
+            raise FileNotFoundError(f"Model file not found: {model_path}")
+        
+        state_dict = torch.load(model_path, map_location="cpu", weights_only=True)
+        logger.info(f"Model state dict loaded successfully")
         model.load_state_dict(state_dict)
         model.eval()
+        logger.info(f"Model loaded and set to eval mode")
 
         preprocess = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -265,25 +290,33 @@ def get_font_metadata(font_name):
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    logger.info("=== Prediction request started ===")
     if 'file' not in request.files:
+        logger.error("Missing 'file' field in form data")
         return jsonify({'error': "Missing 'file' field in form data"}), 400
 
     file = request.files['file']
+    logger.info(f"Received file: {file.filename}, size: {file.content_length}")
     if file.filename == '':
+        logger.error("No file selected")
         return jsonify({'error': 'No file selected'}), 400
 
     try:
+        logger.info("Opening image...")
         img = Image.open(file.stream)
+        logger.info(f"Image opened successfully, mode: {img.mode}, size: {img.size}")
         img = ImageOps.exif_transpose(img)
         try:
             img.draft("L", (1024, 1024))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Image draft failed: {e}")
         img = img.convert("L")
         resampling = Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else Image.LANCZOS
         img.thumbnail((1024, 1024), resampling)
+        logger.info(f"Image processed, final size: {img.size}")
 
         if not looks_like_text(img):
+            logger.info("Image does not look like text, returning Unknown")
             return jsonify({
                 'font': 'Unknown',
                 'confidence': 0.0,
@@ -296,15 +329,24 @@ def predict():
                 'type': 'free'
             })
 
+        logger.info("Loading model bundle...")
         model, class_names, preprocess = get_model_bundle()
+        logger.info(f"Model loaded with {len(class_names)} classes")
+        logger.info(f"Class names: {class_names}")
+        
+        logger.info("Preprocessing image...")
         img_tensor = preprocess(img).unsqueeze(0)
+        logger.info(f"Image tensor shape: {img_tensor.shape}")
 
+        logger.info("Running inference...")
         with torch.inference_mode():
             outputs = model(img_tensor)
+            logger.info(f"Model outputs shape: {outputs.shape}")
             probs = torch.softmax(outputs, dim=1)
             conf, pred = torch.max(probs, dim=1)
             predicted_class = class_names[pred.item()]
             confidence = conf.item()
+        logger.info(f"Prediction: {predicted_class}, confidence: {confidence:.4f}")
         del img_tensor, outputs, probs, conf, pred
 
         if confidence < MIN_CONFIDENCE_FOR_MATCH:
@@ -350,6 +392,7 @@ def predict():
 
         status_normalized = status.lower()
 
+        logger.info(f"Returning result: font={db_font_name}, confidence={confidence:.4f}")
         return jsonify({
             'font': db_font_name,
             'confidence': confidence,
@@ -362,8 +405,9 @@ def predict():
             'type': 'premium' if status_normalized in ('premium', 'paid', 'pro') else 'free'
         })
 
-    except Exception:
-        return jsonify({'error': 'Invalid image or prediction failed'}), 500
+    except Exception as e:
+        logger.error(f"Prediction failed with error: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Invalid image or prediction failed', 'details': str(e)}), 500
 
 
 @app.route('/get_all_fonts', methods=['GET'])
