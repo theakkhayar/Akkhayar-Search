@@ -29,8 +29,13 @@ num_ftrs = model.fc.in_features
 model.fc = nn.Linear(num_ftrs, len(class_names))
 
 if os.path.exists(MODEL_PATH):
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=device, weights_only=False), strict=False)
-    print("Model weights loaded successfully.")
+    try:
+        state_dict = torch.load(MODEL_PATH, map_location='cpu', weights_only=False)
+        model.load_state_dict(state_dict, strict=False)
+        print("Model weights loaded successfully.")
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        print("Continuing without model weights...")
 model.to(device)
 model.eval()
 
