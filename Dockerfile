@@ -21,8 +21,11 @@ RUN pip install --upgrade pip && pip install -r /app/requirements.txt
 
 COPY . /app
 
-# Pull LFS files after copying
-RUN git lfs pull
+# Configure Git for LFS
+RUN git config --global credential.helper store
+
+# Pull LFS files with authentication
+RUN git lfs pull --include="models/*.pth"
 
 EXPOSE 7860
 
