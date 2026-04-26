@@ -7,3 +7,7 @@ python-dotenv==1.2.2
 requests==2.33.1
 torch==2.11.0
 torchvision==0.26.0
+# Training dependencies
+scikit-learn==1.6.1
+matplotlib==3.10.1
+seaborn==0.13.2
