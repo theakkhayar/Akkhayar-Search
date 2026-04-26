@@ -236,7 +236,13 @@ def get_model_bundle():
             # Fallback for older torchvision versions
             model = models.resnet18(pretrained=False)
         model.fc = nn.Linear(model.fc.in_features, num_classes)
+        
+        # Try loading from models/font_model.pth first, fallback to my_font_model.pth
         model_path = os.path.join(ROOT_DIR, "models", "font_model.pth")
+        if not os.path.exists(model_path):
+            model_path = os.path.join(ROOT_DIR, "my_font_model.pth")
+            logger.warning(f"models/font_model.pth not found, trying fallback: {model_path}")
+        
         logger.info(f"Loading model from: {model_path}")
         if not os.path.exists(model_path):
             logger.error(f"Model file not found at: {model_path}")
@@ -344,7 +350,12 @@ def predict():
             logger.info(f"Model outputs shape: {outputs.shape}")
             probs = torch.softmax(outputs, dim=1)
             conf, pred = torch.max(probs, dim=1)
-            predicted_class = class_names[pred.item()]
+            predicted_idx = pred.item()
+            logger.info(f"Predicted index: {predicted_idx}, class_names length: {len(class_names)}")
+            if predicted_idx >= len(class_names):
+                logger.error(f"Index out of range: predicted_idx={predicted_idx} >= len(class_names)={len(class_names)}")
+                raise IndexError(f"Predicted index {predicted_idx} out of range for {len(class_names)} classes")
+            predicted_class = class_names[predicted_idx]
             confidence = conf.item()
         logger.info(f"Prediction: {predicted_class}, confidence: {confidence:.4f}")
         del img_tensor, outputs, probs, conf, pred
