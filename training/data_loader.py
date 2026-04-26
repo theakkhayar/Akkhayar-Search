@@ -55,13 +55,29 @@ def get_image_paths_and_labels(dataset_path, labels):
 def create_data_loaders(dataset_path, labels_path, batch_size=32, test_size=0.2, random_state=42):
     """Create training and validation data loaders"""
     
+    # Validate dataset path exists
+    if not os.path.exists(dataset_path):
+        raise ValueError(f"Dataset path does not exist: {dataset_path}")
+    
+    print(f"Validating dataset at: {dataset_path}")
+    
     # Load labels
     labels = load_labels(labels_path)
     print(f"Loaded {len(labels)} font classes")
     
+    # Validate folders exist and count images
+    print("\nValidating dataset folders:")
+    for folder_name, label_id in labels.items():
+        folder_path = os.path.join(dataset_path, folder_name)
+        if os.path.exists(folder_path):
+            image_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
+            print(f"  [OK] {folder_name}: {len(image_files)} images")
+        else:
+            print(f"  [MISSING] {folder_name}: Folder not found")
+    
     # Get image paths and labels
     image_paths, image_labels = get_image_paths_and_labels(dataset_path, labels)
-    print(f"Found {len(image_paths)} images")
+    print(f"\nFound {len(image_paths)} images total")
     
     if len(image_paths) == 0:
         raise ValueError("No images found in the dataset. Please check the dataset path and structure.")
@@ -104,8 +120,8 @@ def get_class_names(labels_path):
 
 if __name__ == "__main__":
     # Test the data loader
-    dataset_path = "dataset"
-    labels_path = "labels.json"
+    dataset_path = r"D:\Font-Data\dataset"
+    labels_path = r"D:\Font-Data\training\labels.json"
     
     try:
         train_loader, val_loader, num_classes = create_data_loaders(dataset_path, labels_path)

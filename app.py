@@ -219,7 +219,7 @@ def get_model_bundle():
 
         model = models.resnet18(pretrained=False)
         model.fc = nn.Linear(model.fc.in_features, num_classes)
-        state_dict = torch.load(os.path.join(ROOT_DIR, "my_font_model.pth"), map_location="cpu", weights_only=True)
+        state_dict = torch.load(os.path.join(ROOT_DIR, "models", "font_model.pth"), map_location="cpu", weights_only=True)
         model.load_state_dict(state_dict)
         model.eval()
 

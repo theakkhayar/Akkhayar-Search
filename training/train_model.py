@@ -24,7 +24,7 @@ class FontTrainer:
         self.device = device
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=5, verbose=True)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=5)
         
         self.train_losses = []
         self.val_losses = []
@@ -189,12 +189,12 @@ def main():
     
     # Configuration
     config = {
-        'dataset_path': 'dataset',
-        'labels_path': 'labels.json',
-        'model_save_path': 'models/font_model.pth',
+        'dataset_path': r'D:\Font-Data\dataset',
+        'labels_path': r'D:\Font-Data\training\labels.json',
+        'model_save_path': r'D:\Font-Data\models\font_model.pth',
         'model_type': 'resnet',  # 'cnn' or 'resnet'
         'batch_size': 32,
-        'num_epochs': 50,
+        'num_epochs': 15,
         'test_size': 0.2,
         'random_state': 42
     }

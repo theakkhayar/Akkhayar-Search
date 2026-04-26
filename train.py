@@ -1,25 +1,31 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import datasets, transforms, models
-from torch.utils.data import DataLoader
+from torchvision import models
+import sys
+import os
+
+# Add training directory to path to import data_loader
+sys.path.append(os.path.join(os.path.dirname(__file__), 'training'))
+from data_loader import create_data_loaders
 
 if __name__ == '__main__':
     # Device configuration
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Data transforms
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
-    ])
-
-    # Load data
-    train_dataset = datasets.ImageFolder('dataset', transform=transform)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
+    # Load data using custom data loader
+    dataset_path = 'dataset'
+    labels_path = 'training/labels.json'
+    
+    try:
+        train_loader, val_loader, num_classes = create_data_loaders(dataset_path, labels_path)
+        print(f"Successfully loaded data with {num_classes} classes")
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        print("Make sure the dataset folder exists and contains the correct subfolders.")
+        exit(1)
 
     # Model
-    num_classes = len(train_dataset.classes)
     model = models.resnet18(pretrained=True)
     model.fc = nn.Linear(model.fc.in_features, num_classes)
     model = model.to(device)
@@ -58,3 +64,4 @@ if __name__ == '__main__':
 
     # Save the model
     torch.save(model.state_dict(), 'my_font_model.pth')
+    print("Training completed and model saved!")
