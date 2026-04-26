@@ -386,13 +386,30 @@
           throw new Error(payload?.error || 'Prediction request failed');
         }
 
-        const primary = Array.isArray(payload?.results) ? payload.results[0] : payload;
-        if (!primary || (Array.isArray(payload?.results) && payload.results.length === 0) || isNotFound(primary)) {
+        // Handle simplified response format {font: "font_name"}
+        if (payload?.error) {
+          throw new Error(payload.error);
+        }
+
+        if (!payload?.font) {
           showNotFound();
           return;
         }
 
-        const results = normalizeResults(payload);
+        // Create a result object with default values for missing fields
+        const result = {
+          font: payload.font,
+          font_name: payload.font,
+          name: payload.font,
+          confidence: 100,
+          creator_name: 'The Akkhayar',
+          social_link: 'https://t.me/theakkhayar',
+          status: 'premium',
+          purchase_link: '',
+          type: 'premium'
+        };
+
+        const results = [mapResult(result)];
         showResults(results);
       } catch (error) {
         showState('preview');
