@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from datetime import datetime
 
@@ -321,24 +322,27 @@ def predict():
         img.thumbnail((1024, 1024), resampling)
         logger.info(f"Image processed, final size: {img.size}")
 
-        if not looks_like_text(img):
-            logger.info("Image does not look like text, returning Unknown")
-            return jsonify({
-                'font': 'Unknown',
-                'confidence': 0.0,
-                'creator_name': 'Unknown Creator',
-                'creator': 'Unknown Creator',
-                'social_link': '',
-                'purchase_link': '',
-                'status': 'unknown',
-                'image_url': '',
-                'type': 'free'
-            })
+        # Temporarily disable text validation to allow font recognition
+        # if not looks_like_text(img):
+        #     logger.info("Image does not look like text, returning Unknown")
+        #     return jsonify({
+        #         'font': 'Unknown',
+        #         'confidence': 0.0,
+        #         'creator_name': 'Unknown Creator',
+        #         'creator': 'Unknown Creator',
+        #         'social_link': '',
+        #         'purchase_link': '',
+        #         'status': 'unknown',
+        #         'image_url': '',
+        #         'type': 'free'
+        #     })
 
         logger.info("Loading model bundle...")
         model, class_names, preprocess = get_model_bundle()
         logger.info(f"Model loaded with {len(class_names)} classes")
         logger.info(f"Class names: {class_names}")
+        print(f"DEBUG: Class names length: {len(class_names)}")
+        print(f"DEBUG: Class names: {class_names}")
         
         logger.info("Preprocessing image...")
         img_tensor = preprocess(img).unsqueeze(0)
@@ -352,12 +356,15 @@ def predict():
             conf, pred = torch.max(probs, dim=1)
             predicted_idx = pred.item()
             logger.info(f"Predicted index: {predicted_idx}, class_names length: {len(class_names)}")
+            print(f"DEBUG: Predicted index: {predicted_idx}")
+            print(f"DEBUG: Class names length: {len(class_names)}")
             if predicted_idx >= len(class_names):
                 logger.error(f"Index out of range: predicted_idx={predicted_idx} >= len(class_names)={len(class_names)}")
                 raise IndexError(f"Predicted index {predicted_idx} out of range for {len(class_names)} classes")
             predicted_class = class_names[predicted_idx]
             confidence = conf.item()
         logger.info(f"Prediction: {predicted_class}, confidence: {confidence:.4f}")
+        print(f"DEBUG: Predicted class: {predicted_class}, confidence: {confidence:.4f}")
         del img_tensor, outputs, probs, conf, pred
 
         if confidence < MIN_CONFIDENCE_FOR_MATCH:
