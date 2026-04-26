@@ -361,7 +361,7 @@ def predict():
             if predicted_idx >= len(class_names):
                 logger.error(f"Index out of range: predicted_idx={predicted_idx} >= len(class_names)={len(class_names)}")
                 raise IndexError(f"Predicted index {predicted_idx} out of range for {len(class_names)} classes")
-            predicted_class = class_names[predicted_idx]
+            predicted_class = class_names[predicted_idx].strip()
             confidence = conf.item()
         logger.info(f"Prediction: {predicted_class}, confidence: {confidence:.4f}")
         print(f"DEBUG: Predicted class: {predicted_class}, confidence: {confidence:.4f}")
@@ -387,26 +387,31 @@ def predict():
         image_url = ""
         db_font_name = predicted_class
 
-        if supabase_available:
-            row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link, image_url", "font_name", predicted_class)
-            if not row:
-                row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link, image_url", "name", predicted_class)
+        try:
+            if supabase_available:
+                row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link, image_url", "font_name", predicted_class)
+                if not row:
+                    row = supabase_query("fonts", "font_name, creator_name, social_link, status, purchase_link, image_url", "name", predicted_class)
 
-            if row and isinstance(row, dict):
-                db_font_name = row.get("font_name") or predicted_class
-                creator_name = row.get("creator_name") or "Unknown Creator"
-                social_link = row.get("social_link") or ""
-                status = str(row.get("status") or "unknown")
-                purchase_link = row.get("purchase_link") or ""
-                image_url = row.get("image_url") or ""
+                if row and isinstance(row, dict):
+                    db_font_name = row.get("font_name") or predicted_class
+                    creator_name = row.get("creator_name") or "Unknown Creator"
+                    social_link = row.get("social_link") or ""
+                    status = str(row.get("status") or "unknown")
+                    purchase_link = row.get("purchase_link") or ""
+                    image_url = row.get("image_url") or ""
 
-        if creator_name == "Unknown Creator":
-            fallback_data = MANUAL_FONT_FALLBACKS.get(predicted_class)
-            if fallback_data:
-                creator_name = fallback_data["creator_name"]
-                social_link = fallback_data["social_link"]
-                status = fallback_data["status"]
-                purchase_link = fallback_data.get("purchase_link", "")
+            if creator_name == "Unknown Creator":
+                fallback_data = MANUAL_FONT_FALLBACKS.get(predicted_class)
+                if fallback_data:
+                    creator_name = fallback_data["creator_name"]
+                    social_link = fallback_data["social_link"]
+                    status = fallback_data["status"]
+                    purchase_link = fallback_data.get("purchase_link", "")
+        except Exception as e:
+            logger.error(f"Error looking up font details for {predicted_class}: {e}")
+            creator_name = "Font details not found"
+            status = "unknown"
 
         status_normalized = status.lower()
 
