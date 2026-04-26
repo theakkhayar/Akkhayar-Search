@@ -26,8 +26,10 @@ try:
         labels = json.load(f)
     # Handle both array and dictionary formats
     if isinstance(labels, dict):
-        class_names = sorted(labels.keys(), key=lambda x: labels[x])
+        # Dictionary format: {"0": "Font1", "1": "Font2", ...}
+        class_names = [labels[str(i)] for i in range(len(labels))]
     else:
+        # Array format: ["Font1", "Font2", ...]
         class_names = labels
     print(f"Loaded {len(class_names)} font classes: {class_names}")
 except Exception as e:
